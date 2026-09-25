@@ -34,6 +34,8 @@ async function boot() {
   document.getElementById('backendTag').textContent = api.backendKind === 'github' ? '☁️ GitHub' : '💻 Local';
   initConfig(document.getElementById('tab-config'));
   try {
+    // En GitHub Pages no hay servidor local: sin token configurado, ir directo a ⚙️ Config (sin pedir /api/*).
+    if (api.backendKind === 'local' && location.hostname.endsWith('github.io')) throw new Error('sin-config');
     await st.load();
   } catch (e) {
     fatal.style.display = '';
