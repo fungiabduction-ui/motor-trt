@@ -24,7 +24,7 @@ clínicos, fixtures y tests con datos reales) viven en el repo **privado** `MOTO
   `data/backups/` (nombre con fecha/hora actual) + commit + push; en los dispositivos, "⬇ Cargar último backup".
 
 ## Reglas fijas
-1. `log.json` es la única fuente de verdad de eventos. Ningún dato personal en el código.
+1. El log (dentro del backup más reciente) es la única fuente de verdad de eventos. Ningún dato personal en el código.
 2. `model.json` cambia SOLO en una sesión con Claude Code (script → tests → versión nueva con motivo). La app propone
    (escala de T, ED50 del anastrozol, respuesta a la estatina), nunca escribe el modelo.
 3. Cada lab nuevo congela la predicción de la versión vigente (`prediccion`) antes de recalibrar.
