@@ -15,7 +15,6 @@ export function initConfig(root) {
     <h2>Conectar GitHub</h2>
     <div class="field-row">
       <div class="field wide"><label for="cfgRepo">Repo de datos (privado)</label><input id="cfgRepo" value="${esc(cfg?.repo || DEFAULT_REPO)}"></div>
-      <div class="field"><label for="cfgBranch">Rama</label><input id="cfgBranch" value="${esc(cfg?.branch || 'main')}"></div>
       <div class="field wide"><label for="cfgToken">Token (fine-grained)</label><input id="cfgToken" type="password" placeholder="${cfg ? '•••••• (ya configurado — dejá vacío para mantenerlo)' : 'github_pat_…'}" autocomplete="off"></div>
     </div>
     <div class="btn-row"><button class="btn" data-test>Probar conexión</button><button class="btn primary" data-save>Guardar y usar GitHub</button>
@@ -34,7 +33,7 @@ export function initConfig(root) {
   </div>`);
   root.appendChild(ui);
   const out = ui.querySelector('[data-out]');
-  const read = () => ({ repo: ui.querySelector('#cfgRepo').value.trim(), branch: ui.querySelector('#cfgBranch').value.trim() || 'main',
+  const read = () => ({ repo: ui.querySelector('#cfgRepo').value.trim(), branch: cfg?.branch || 'main',
     token: ui.querySelector('#cfgToken').value.trim() || cfg?.token || '' });
 
   async function probar() {
