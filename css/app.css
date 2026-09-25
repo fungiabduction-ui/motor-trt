@@ -1,0 +1,110 @@
+/* Motor TRT — misma paleta que la calculadora vieja (tema oscuro). */
+:root{
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a; --border:#2e3350;
+  --text:#e4e8f7; --muted:#8892b0;
+  --s1:#3987e5; --s5:#d55181;
+  --good:#199e70; --warn:#c98500; --bad:#e5484d; --real:#f2c94c;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  font-size:14px;line-height:1.55;margin:0 auto;padding:0 16px 40px;max-width:1280px;}
+h1{font-size:20px;margin:0;letter-spacing:-.01em;}
+h2{font-size:14px;font-weight:600;color:var(--s1);text-transform:uppercase;letter-spacing:.06em;
+  margin:26px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+h3{font-size:12.5px;color:var(--muted);margin:16px 0 8px;font-weight:600;}
+.sub{color:var(--muted);font-size:12.5px;}
+.muted{color:var(--muted);}
+.small{font-size:11.5px;}
+
+/* Barra superior + indicador de guardado (fijo, nunca se oculta solo) */
+.topbar{position:sticky;top:0;z-index:40;background:var(--bg);display:flex;justify-content:space-between;
+  align-items:center;gap:12px;padding:14px 0 10px;border-bottom:1px solid var(--border);}
+.save-status{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:16px;border:1px solid var(--border);
+  background:var(--surface2);white-space:nowrap;}
+.save-status[data-kind=saved]{color:var(--good);border-color:rgba(25,158,112,.5);}
+.save-status[data-kind=saving]{color:var(--real);}
+.save-status[data-kind=error],.save-status[data-kind=conflict]{color:#fff;background:var(--bad);border-color:var(--bad);}
+
+.tabs{display:flex;gap:6px;margin:14px 0 0;flex-wrap:wrap;}
+.tab-btn{background:var(--surface2);border:1px solid var(--border);border-bottom:none;color:var(--muted);
+  padding:9px 16px;border-radius:10px 10px 0 0;font-size:13px;font-weight:600;cursor:pointer;}
+.tab-btn.active{background:var(--surface);color:var(--s1);}
+.tab-panel{background:var(--surface);border:1px solid var(--border);border-radius:0 12px 12px 12px;padding:6px 18px 20px;}
+
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px;}
+@media(min-width:1000px){.grid2{grid-template-columns:1fr 1fr;}}
+.callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:12px;}
+.kpi .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.kpi .val{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
+.kpi .sub2{font-size:11px;color:var(--muted);}
+
+.error-box{background:rgba(229,72,77,.10);border-left:3px solid var(--bad);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;}
+.warn-box{background:rgba(201,133,0,.10);border-left:3px solid var(--warn);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;}
+.info-box{background:rgba(57,135,229,.08);border-left:3px solid var(--s1);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;}
+.good-box{background:rgba(25,158,112,.08);border-left:3px solid var(--good);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:13px;}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums;}
+th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--border);vertical-align:top;}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--surface2);position:sticky;top:0;}
+td.num,th.num{text-align:right;}
+.scroll-table{max-height:520px;overflow:auto;border:1px solid var(--border);border-radius:10px;}
+.tag{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:10px;border:1px solid var(--border);color:var(--muted);white-space:nowrap;}
+.tag.confirmada{color:var(--good);border-color:rgba(25,158,112,.5);}
+.tag.salteada{color:var(--muted);text-decoration:line-through;}
+.tag.reconstruida{color:var(--real);border-color:rgba(242,201,76,.4);}
+.tag.vencida{color:#fff;background:var(--warn);border-color:var(--warn);}
+
+.field-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;}
+.field{display:flex;flex-direction:column;gap:4px;min-width:140px;}
+.field.wide{flex:1 1 100%;}
+.field label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.field.inline{flex-direction:row;align-items:center;gap:8px;min-width:0;}
+.field.inline label{text-transform:none;font-size:12.5px;color:var(--text);letter-spacing:0;}
+select,input,textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:8px;
+  font:inherit;font-size:13.5px;font-variant-numeric:tabular-nums;}
+textarea{min-height:60px;resize:vertical;width:100%;}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--s5);}
+.pill-group{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{padding:5px 11px;border-radius:16px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:12px;cursor:pointer;user-select:none;}
+.pill.active{background:var(--s1);color:#fff;border-color:var(--s1);}
+
+.btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
+.btn:hover{border-color:var(--s1);}
+.btn.primary{background:var(--good);border-color:var(--good);color:#fff;}
+.btn.skip{background:transparent;color:var(--muted);}
+.btn.danger{background:transparent;border-color:rgba(229,72,77,.6);color:var(--bad);}
+.btn.small{padding:4px 9px;font-size:12px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.icon-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+
+.next-dose{border:1px solid rgba(25,158,112,.5);background:rgba(25,158,112,.06);}
+.next-dose .when{font-size:20px;font-weight:700;}
+.next-dose .what{font-size:15px;margin:2px 0 10px;}
+/* Tarjeta de Registro: verde el día que toca aplicar, roja con letras amarillas el resto de los días. */
+.dose-card .dose-flag{font-size:13px;font-weight:800;letter-spacing:.06em;margin-bottom:4px;}
+.dose-card.hoy{background:rgba(25,158,112,.22);border:2px solid var(--good);}
+.dose-card.hoy .dose-flag{color:#7ee2b8;}
+.dose-card.no-hoy{background:#5a1a1d;border:2px solid var(--bad);color:var(--real);}
+.dose-card.no-hoy .dose-flag,.dose-card.no-hoy .when{color:var(--real);}
+.dose-card.no-hoy .slot-row{border-top-color:rgba(242,201,76,.25);}
+.slot-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);flex-wrap:wrap;}
+
+.chart-box{position:relative;height:360px;transition:height .25s ease;}
+.chart-box.expanded{height:640px;}
+.chart-box canvas{height:100% !important;width:100% !important;}
+.chart-box.small{height:300px;}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 0 6px;}
+.chart-head h2{margin:0;border:none;padding:0;}
+.legend-note{font-size:11.5px;color:var(--muted);margin-top:6px;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;}
+.modal-backdrop[hidden]{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px 20px 20px;width:100%;max-width:720px;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;}
+.modal-head h2{border:none;margin:16px 0 8px;}
+.form-errors{color:var(--bad);font-size:12.5px;margin:6px 0;}
+
+.diff-add{color:var(--good);} .diff-del{color:var(--bad);} .diff-mod{color:var(--real);}
+.diff-list{font-size:12.5px;margin:6px 0 0 18px;padding:0;}
+code{background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px;}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motor TRT</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <h1>Motor TRT</h1>
+    <div class="sub" id="subtitle">Registro de dosis, curva real y calibración</div>
+  </div>
+  <div class="btn-row"><span class="tag" id="backendTag"></span><div class="save-status" id="saveStatus" data-kind="idle">—</div></div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab-btn active" data-tab="registro">📝 Registro</button>
+  <button class="tab-btn" data-tab="curva">📈 Curva real</button>
+  <button class="tab-btn" data-tab="historia">🗂️ Historia</button>
+  <button class="tab-btn" data-tab="calculadora">🧮 Calculadora</button>
+  <button class="tab-btn" data-tab="modelo">🔬 Modelo</button>
+  <button class="tab-btn" data-tab="respaldos">🗄️ Respaldos</button>
+  <button class="tab-btn" data-tab="config">⚙️ Config</button>
+</nav>
+
+<div id="fatal" class="error-box" style="display:none"></div>
+
+<main>
+  <section class="tab-panel" id="tab-registro"></section>
+  <section class="tab-panel" id="tab-curva" hidden></section>
+  <section class="tab-panel" id="tab-historia" hidden></section>
+  <section class="tab-panel" id="tab-calculadora" hidden></section>
+  <section class="tab-panel" id="tab-modelo" hidden></section>
+  <section class="tab-panel" id="tab-respaldos" hidden></section>
+  <section class="tab-panel" id="tab-config" hidden></section>
+</main>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head"><h2 id="modalTitle"></h2><button class="icon-btn" id="modalClose" aria-label="Cerrar">✕</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.1/chart.umd.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

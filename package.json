@@ -1,0 +1,8 @@
+{
+  "name": "motor-trt",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
