@@ -109,11 +109,12 @@ export function initRegistro(root) {
     };
   }
 
-  function slotRow(s, when) {
+  function slotRow(s, when, conBotones = true) {
     const a = slotActions(s, when);
     const row = h(`<div class="slot-row"><div>${when === 'vencida' ? `<span class="tag vencida">vencida</span> <b>${fmtDay(s.day)}</b> ${WEEKDAYS[((Math.floor(s.day) + 2) % 7 + 7) % 7]} · ` : ''}${a.text}</div>
-      <div class="btn-row"><button class="btn primary small" data-a="ok">✓ ${s.kind === 'dosis_t' ? 'Confirmar aplicación' : 'Confirmar toma'}</button>
-      <button class="btn skip small" data-a="skip">⤼ Salteada</button></div></div>`);
+      ${conBotones ? `<div class="btn-row"><button class="btn primary small" data-a="ok">✓ ${s.kind === 'dosis_t' ? 'Confirmar aplicación' : 'Confirmar toma'}</button>
+      <button class="btn skip small" data-a="skip">⤼ Salteada</button></div>` : ''}</div>`);
+    if (!conBotones) return row;
     row.querySelector('[data-a=ok]').addEventListener('click', a.confirm);
     row.querySelector('[data-a=skip]').addEventListener('click', async () => {
       if (!confirm('¿Marcar como salteada? El motor la va a tratar como NO aplicada.')) return;
@@ -145,7 +146,7 @@ export function initRegistro(root) {
         <div class="dose-flag">${hoy ? '✅ HOY TOCA APLICACIÓN' : '⛔ HOY NO TOCA APLICACIÓN'}</div>
         <div class="when">${hoy ? '' : 'Próxima: '}${WEEKDAYS[((Math.floor(next.day) + 2) % 7 + 7) % 7]} ${fmtDay(next.day)} <span class="small">(${falta})</span></div>
         <div class="small" style="opacity:.8">Esquema ${next.esquemaId}</div></div>`);
-      group.forEach(s => card.appendChild(slotRow(s, 'pendiente')));
+      group.forEach(s => card.appendChild(slotRow(s, 'pendiente', hoy))); // botones solo el día que toca
       top.appendChild(card);
       const later = tl.pendientes.filter(s => s.kind === 'dosis_t' && s.day > next.day + 1e-6).slice(0, 5);
       if (later.length) top.appendChild(h(`<div class="legend-note">Después: ${later.map(s => `${WEEKDAYS[((Math.floor(s.day) + 2) % 7 + 7) % 7]} ${fmtDay(s.day)} (${fmt(s.mg, 1)} mg)`).join(' · ')}</div>`));

@@ -7,7 +7,7 @@ import { initCurva } from './ui/curva.js';
 import { initCalculadora } from './ui/calculadora.js';
 import { initHistoria } from './ui/historia.js';
 import { initModelo } from './ui/modelo.js';
-import { initRespaldos } from './ui/respaldos.js';
+import { mountBackups } from './ui/respaldos.js';
 import { initConfig } from './ui/config.js';
 
 // Cualquier error de la UI queda en data/errors.json para revisarlo en sesión.
@@ -57,15 +57,16 @@ async function boot() {
   }
   const nombre = st.state.model?.perfil?.nombre;
   if (nombre) document.getElementById('subtitle').textContent = `Registro de dosis, curva real y calibración — ${nombre}`;
-  st.setStatus('saved', `✓ Cargado (rev ${st.state.log.rev})`);
+  if (st.isGithub()) st.refreshStatus(); else st.setStatus('saved', `✓ Cargado (rev ${st.state.log.rev})`);
   initRegistro(document.getElementById('tab-registro'));
   initCurva(document.getElementById('tab-curva'));
   initHistoria(document.getElementById('tab-historia'));
   initCalculadora(document.getElementById('tab-calculadora'));
   initModelo(document.getElementById('tab-modelo'));
-  initRespaldos(document.getElementById('tab-respaldos'));
+  mountBackups(document.querySelector('#tab-config [data-backups]'));
   let tab = 'registro';
-  try { tab = localStorage.getItem('motor-trt.tab') || 'registro'; } catch { /* ignorar */ }
+  try { tab = localStorage.getItem('motor-trt.tab') || 'registro';
+    if (tab === 'respaldos') tab = 'config'; } catch { /* ignorar */ }
   showTab(document.getElementById('tab-' + tab) ? tab : 'registro');
 }
 boot();

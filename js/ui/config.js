@@ -2,6 +2,7 @@
 import { loadConfig, saveConfig, clearConfig, createGithubBackend, DEFAULT_REPO } from '../store/backend-github.js';
 import { backendKind, backendRepo } from '../store/api.js';
 import { h, esc } from './common.js';
+import { stampKey, stampLabel } from '../store/backup.js';
 
 export function initConfig(root) {
   const cfg = loadConfig();
@@ -9,7 +10,7 @@ export function initConfig(root) {
   const ui = h(`<div>
     <h2>Dónde se guardan tus datos</h2>
     <div class="${backendKind === 'github' ? 'good-box' : 'info-box'}">${backendKind === 'github'
-      ? `☁️ <b>GitHub</b> — repo privado <code>${esc(backendRepo)}</code>. Cada guardado es un commit (historial = respaldo). Funciona desde cualquier dispositivo con este token.`
+      ? `☁️ <b>GitHub</b> — repo privado <code>${esc(backendRepo)}</code>. Trabajás sobre la copia de este navegador; los cambios se suben cuando tocás <b>💾 Guardar backup ahora</b> (abajo).`
       : '💻 <b>Servidor local</b> (start.bat en la PC). Para usarlo desde el celular, conectá el repo privado de GitHub abajo.'}</div>
 
     <h2>Conectar GitHub</h2>
@@ -21,15 +22,18 @@ export function initConfig(root) {
       ${cfg ? '<button class="btn danger" data-clear>Desconectar este dispositivo</button>' : ''}</div>
     <div data-out></div>
 
-    <h2>Cómo crear el token (una vez por dispositivo, o reusar el mismo)</h2>
+    <details style="margin-top:10px"><summary class="small" style="cursor:pointer">Cómo crear el token (una vez)</summary>
     <ol class="small" style="line-height:1.8">
       <li>En GitHub: <b>Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token</b>.</li>
       <li><b>Repository access:</b> "Only select repositories" → solo <code>${esc(DEFAULT_REPO.split('/')[1])}</code>.</li>
       <li><b>Permissions → Repository → Contents: Read and write</b> (nada más; Metadata queda en solo lectura automáticamente).</li>
       <li>Vencimiento: el que prefieras (cuando venza, la app avisa "Token inválido o vencido" y se genera otro).</li>
       <li>Copiá el token, pegalo arriba, <b>Probar conexión</b> → <b>Guardar</b>.</li>
-    </ol>
-    <div class="muted small">El token queda solo en este navegador (ofuscado, no cifrado) y nunca sale de acá salvo hacia api.github.com. Con acceso solo a ese repo y solo a su contenido, aunque alguien lo viera no puede tocar nada más de tu cuenta.</div>
+    </ol></details>
+    <h2>🗄️ Respaldos</h2>
+    <div data-backups></div>
+
+    <div class="muted small" style="margin-top:16px">El token queda solo en este navegador (ofuscado, no cifrado) y nunca sale de acá salvo hacia api.github.com. Con acceso solo a ese repo y solo a su contenido, aunque alguien lo viera no puede tocar nada más de tu cuenta.</div>
   </div>`);
   root.appendChild(ui);
   const out = ui.querySelector('[data-out]');
@@ -44,8 +48,9 @@ export function initConfig(root) {
       const be = createGithubBackend(c);
       const info = await be.test();
       if (!info.privado) { out.innerHTML = `<div class="error-box">⚠ El repo <code>${esc(info.nombre)}</code> es <b>público</b>. Los datos tienen que ir en un repo privado.</div>`; return false; }
-      const log = await be.getLog();
-      out.innerHTML = `<div class="good-box">✓ Conectado a <code>${esc(info.nombre)}</code> (privado) · log rev ${log.rev}, ${log.entries.length} entradas.</div>`;
+      const backups = await be.listBackups();
+      const ultimo = backups.map(b => b.name).sort((a, b) => stampKey(b).localeCompare(stampKey(a)))[0];
+      out.innerHTML = `<div class="good-box">✓ Conectado a <code>${esc(info.nombre)}</code> (privado) · ${backups.length} backup(s)${ultimo ? ` · último ${esc(stampLabel(ultimo))}` : (await be.loadLegacy() ? ' · datos en formato anterior (se migran al guardar el primer backup)' : '')}.</div>`;
       return true;
     } catch (e) {
       // Explicar el motivo concreto en vez de solo "No encontrado".

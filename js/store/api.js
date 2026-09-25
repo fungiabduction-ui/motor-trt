@@ -1,17 +1,21 @@
-// Elige dónde viven los datos: si este navegador tiene configurado el repo privado de GitHub (⚙️ Config) → GitHub
-// (así funciona desde el celular vía GitHub Pages); si no → servidor local serve.py (start.bat, sin internet).
+// Modo de datos: si este navegador tiene el repo privado de GitHub configurado (⚙️ Config) → modo GitHub (copia de
+// trabajo en el navegador + backups manuales inmutables, como CFG de biolab); si no → servidor local serve.py (start.bat).
 import * as local from './backend-local.js';
 import { loadConfig, createGithubBackend } from './backend-github.js';
+import * as wc from './workcopy.js';
 
 const cfg = loadConfig();
-const be = cfg ? createGithubBackend(cfg) : { kind: 'local', ...local };
+export const backendKind = cfg ? 'github' : 'local';
+export const backendRepo = cfg ? cfg.repo : null;
+export const gh = cfg ? createGithubBackend(cfg) : null;
 
-export const backendKind = be.kind;
-export const backendRepo = be.repo || null;
-export const getLog = () => be.getLog();
-export const putLog = (doc, message) => be.putLog(doc, message);
-export const getModel = () => be.getModel();
-export const listBackups = () => be.listBackups();
-export const getBackup = name => be.getBackup(name);
-export const restoreBackup = name => be.restoreBackup(name);
-export const reportError = info => be.reportError(info);
+// Solo modo local (serve.py):
+export const getLog = () => local.getLog();
+export const putLog = doc => local.putLog(doc);
+export const getModel = () => local.getModel();
+export const listLocalBackups = () => local.listBackups();
+export const getLocalBackup = name => local.getBackup(name);
+export const restoreLocalBackup = name => local.restoreBackup(name);
+
+// Errores: en modo GitHub quedan en la copia local y viajan con el próximo backup (nunca un commit automático).
+export const reportError = info => (cfg ? wc.appendError(info) : local.reportError(info));

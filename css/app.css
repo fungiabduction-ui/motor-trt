@@ -23,6 +23,7 @@ h3{font-size:12.5px;color:var(--muted);margin:16px 0 8px;font-weight:600;}
   background:var(--surface2);white-space:nowrap;}
 .save-status[data-kind=saved]{color:var(--good);border-color:rgba(25,158,112,.5);}
 .save-status[data-kind=saving]{color:var(--real);}
+.save-status[data-kind=dirty]{color:#1a1400;background:var(--real);border-color:var(--real);}
 .save-status[data-kind=error],.save-status[data-kind=conflict]{color:#fff;background:var(--bad);border-color:var(--bad);}
 
 .tabs{display:flex;gap:6px;margin:14px 0 0;flex-wrap:wrap;}

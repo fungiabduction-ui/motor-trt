@@ -8,15 +8,20 @@ clínicos, fixtures y tests con datos reales) viven en el repo **privado** `MOTO
 (ignorado por este repo). Documentación clínica y bitácora completa: `data/docs/CLAUDE-motor-completo.md` (privado).
 
 ## Dónde se guardan los datos (patrón CFG de biolab-app)
-- **GitHub (principal):** la app lee/escribe `log.json`, `model.json`, `errors.json` en el repo privado con la API de
-  contenidos (`js/store/backend-github.js`). Cada guardado = 1 commit (mensaje `+ ID`, `~ ID`, `- ID`): el historial
-  de commits es el respaldo (pestaña Respaldos). Token fine-grained (solo Contents R/W de ese repo), guardado en el
-  navegador de cada dispositivo (pestaña ⚙️ Config). Solo `api.github.com`, sin proxies; reintento solo ante fallos de red.
-- **Servidor local (sin internet):** `start.bat` → `serve.py` en `127.0.0.1:8735`, escribe en `data/` con backup +
-  escritura atómica. Se usa si el navegador NO tiene token configurado. Lo guardado así hay que commitear/pushear
-  a mano en `data/` para que lo vean los otros dispositivos.
-- Concurrencia: `rev` (local) / `sha` (GitHub) → 409 si otro dispositivo guardó antes; la UI recarga sin pisar.
-- `js/store/serialize.js` produce **el mismo texto** que `serve.py` (test de paridad): claves ordenadas, entradas por fecha.
+- **Modo GitHub (principal, PC y celular vía Pages):** la app trabaja sobre una **copia en el navegador**
+  (`js/store/workcopy.js`, localStorage `motor-trt.estado`); registrar es instantáneo y NO sube nada.
+  **"💾 Guardar backup ahora"** (⚙️ Config → Respaldos) sube un archivo NUEVO e inmutable
+  `backups/motor-backup-FECHA_DD-MM-AAAA_HORA_HH-MM-SS.json` = `{tipo, version, log, model, errores}` al repo privado
+  y en el mismo momento descarga esa copia al disco. Nunca automático. Aviso de cambios sin guardar por huella
+  (`js/store/backup.js → fingerprint`, contra `base` de la copia). Lista: tamaño coloreado vs el anterior
+  (verde creció / amarillo igual / rojo bajó), SHA, ¿Qué cambió?, Descargar, Restaurar, Cargar último.
+  Errores de la UI quedan en la copia local y viajan con el próximo backup (sin commits automáticos).
+- **Modo local (sin internet):** sin token configurado → `start.bat`/`serve.py` escribe `data/log.json` en cada cambio
+  con backup en `data/backups-local/` (gitignoreado; `log.json`/`model.json`/`errors.json` de la raíz de `data/`
+  también: son solo de este modo).
+- **Fuente de verdad para Claude Code:** el backup MÁS RECIENTE de `data/backups/` (tras `git -C data pull`).
+  Si en sesión se cambia algo (ej. recalibrar el modelo): escribir un backup nuevo con `backupText()` en
+  `data/backups/` (nombre con fecha/hora actual) + commit + push; en los dispositivos, "⬇ Cargar último backup".
 
 ## Reglas fijas
 1. `log.json` es la única fuente de verdad de eventos. Ningún dato personal en el código.
@@ -37,8 +42,8 @@ clínicos, fixtures y tests con datos reales) viven en el repo **privado** `MOTO
 - `js/engine/` — motor puro, sin DOM: `time`, `pk` (no lineal SHBG/Vermeulen), `estradiol`, `projection`
   (log → dosis/slots/pendientes/vencidas), `scheme` (calculadora), `optimizer` (✨ dosis óptima), `calibration`,
   `respuesta` (ED50 / estatina personal), `lipids`, `curves`, `objetivos`.
-- `js/store/` — `api` (elige backend), `backend-github`, `backend-local`, `serialize`, `entries`, `diff`.
-- `js/ui/` — una pestaña por archivo + `common` (formato, referencias piso/techo, modal, formularios), `lipidchart`.
+- `js/store/` — `api` (modo), `backend-github` (backups en el repo privado), `backend-local`, `workcopy`, `backup`, `serialize`, `entries`, `diff`.
+- `js/ui/` — una pestaña por archivo + `common`, `lipidchart`; `respaldos.js` se monta dentro de ⚙️ Config (no es pestaña).
 - `serve.py` + `start.bat` — servidor local. `tools/migrate-history.mjs` — importa labs de un `data_raw.json`.
 
 ## Gotchas

@@ -85,7 +85,7 @@ class Store:
         self.log_path = self.data_dir / 'log.json'
         self.model_path = self.data_dir / 'model.json'
         self.errors_path = self.data_dir / 'errors.json'
-        self.backups_dir = self.data_dir / 'backups'
+        self.backups_dir = self.data_dir / 'backups-local'
         self._lock = threading.Lock()
 
     @staticmethod
