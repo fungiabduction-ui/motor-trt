@@ -48,7 +48,20 @@ export function initConfig(root) {
       const log = await be.getLog();
       out.innerHTML = `<div class="good-box">✓ Conectado a <code>${esc(info.nombre)}</code> (privado) · log rev ${log.rev}, ${log.entries.length} entradas.</div>`;
       return true;
-    } catch (e) { out.innerHTML = `<div class="error-box">✕ ${esc(e.message)}</div>`; return false; }
+    } catch (e) {
+      // Explicar el motivo concreto en vez de solo "No encontrado".
+      let detalle = '';
+      try {
+        const d = await createGithubBackend(c).diagnose();
+        const owner = c.repo.split('/')[0];
+        if (!d.valido) detalle = 'El token no es válido: está mal copiado, fue regenerado (el anterior deja de funcionar) o está vencido.';
+        else if (d.cuenta.toLowerCase() !== owner.toLowerCase()) detalle = `El token es de la cuenta <b>${esc(d.cuenta)}</b>, pero el repo es de <b>${esc(owner)}</b>. Creá el token logueado como <b>${esc(owner)}</b> (avatar arriba a la derecha en GitHub) y con "Resource owner" = ${esc(owner)}.`;
+        else if (!d.repos.some(r => r.toLowerCase() === c.repo.toLowerCase())) detalle = `El token es de <b>${esc(d.cuenta)}</b> (bien) pero no tiene acceso a <code>${esc(c.repo)}</code>. Repos que ve: ${d.repos.length ? d.repos.map(esc).join(', ') : 'ninguno'}. Editá el token → Repository access → "Only select repositories" → agregá ${esc(c.repo.split('/')[1])} → Update token (y Contents: Read and write).`;
+        else detalle = 'El token ve el repo pero falló la lectura: revisá que tenga Contents: Read and write.';
+      } catch { /* sin red: queda el mensaje original */ }
+      out.innerHTML = `<div class="error-box">✕ ${esc(e.message)}${detalle ? `<br>${detalle}` : ''}</div>`;
+      return false;
+    }
   }
   ui.querySelector('[data-test]').addEventListener('click', probar);
   ui.querySelector('[data-save]').addEventListener('click', async () => { if (await probar()) { saveConfig(read()); location.reload(); } });

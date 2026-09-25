@@ -107,5 +107,16 @@ export function createGithubBackend(cfg, fetchImpl = (...a) => globalThis.fetch(
       } catch (e) { console.error('No se pudo registrar el error en GitHub', info, e); }
     },
     async test() { const repo = await gh('GET', ''); return { privado: repo.private, nombre: repo.full_name }; },
+    // Diagnóstico cuando el repo no aparece: de qué cuenta es el token y qué repos puede ver.
+    async diagnose() {
+      const call = async path => {
+        const r = await fetchImpl(`${API}${path}`, { cache: 'no-store', headers: { Authorization: `Bearer ${cfg.token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
+        return { status: r.status, data: await r.json().catch(() => ({})) };
+      };
+      const user = await call('/user');
+      if (user.status === 401) return { valido: false };
+      const repos = await call('/user/repos?per_page=100');
+      return { valido: true, cuenta: user.data.login, repos: Array.isArray(repos.data) ? repos.data.map(r => r.full_name) : [] };
+    },
   };
 }
