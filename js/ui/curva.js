@@ -1,9 +1,12 @@
 // Pestaña Curva real: T y E2 reconstruidos desde el log + proyección, con cada evento marcado en el gráfico.
 import { buildCurves } from '../engine/curves.js';
-import { nowDay, dayFromIso } from '../engine/time.js';
+import { nowDay, dayFromIso, weekdayOfDay } from '../engine/time.js';
 import { objetivosOf } from '../engine/objetivos.js';
-import { h, esc, fmt, fmtDay, fmtIso, kpi, statusOf, refPlugin, nowLinePlugin, tooltipStyle, dayAxis, valueAxis,
-  expandButton, C, T_REF, E2_REF, label, tRef, e2Ref } from './common.js';
+import { proximaExtraccion } from '../engine/extraccion.js';
+import { suppressionFromDoses, e2FromT } from '../engine/estradiol.js';
+import { predictLipidsAt } from '../engine/lipids.js';
+import { h, esc, fmt, fmtDay, fmtIso, kpi, statusOf, refPlugin, nowLinePlugin, nowDotPlugin, dayMarkPlugin, tooltipStyle,
+  dayAxis, valueAxis, expandButton, C, T_REF, E2_REF, WEEKDAYS, label, tRef, e2Ref } from './common.js';
 import { describeEntry } from './registro.js';
 import { mountLipidChart } from './lipidchart.js';
 import * as st from '../state.js';
@@ -34,12 +37,14 @@ export function initCurva(root) {
         <option value="30" selected>Últimos 30 días + proyección</option><option value="14">Últimos 14 días + proyección</option></select></div>
       <div class="field inline"><input type="checkbox" id="cvEster"><label for="cvEster">Mostrar aporte por éster</label></div>
     </div>
-    <div class="callouts" data-kpis></div>
+    <div class="card extraccion" data-extraccion></div>
     <div class="chart-head"><h2>Testosterona total</h2><span data-exp-t></span></div>
+    <div class="callouts" data-kpis-t></div>
     <div class="chart-box" data-box-t><canvas></canvas></div>
     <div class="legend-note">Línea sólida = reconstruida desde el log · punteada = proyección con las dosis pendientes del esquema vigente ·
       ▲ confirmada · △ tenue reconstruida · ○ pendiente · ✕ salteada/vencida · ■ síntoma · ★ lab real (tooltip: predicho vs real).</div>
     <div class="chart-head"><h2>Estradiol</h2><span data-exp-e></span></div>
+    <div class="callouts" data-kpis-e></div>
     <div class="chart-box small" data-box-e><canvas></canvas></div>
     <div class="legend-note">E2 = tu proporción personal × T (±8%). El efecto del anastrozol es extrapolación poblacional (sin datos propios todavía). Banda verde fuerte = tu objetivo 22-30 · naranja = piso duro 20 · gris = tu E2 natural pre-TRT (2025).</div>
     <div class="chart-head"><h2>Lípidos — efecto de la rosuvastatina</h2></div>
@@ -49,7 +54,7 @@ export function initCurva(root) {
     <div class="info-box small" data-model></div>
   </div>`);
   root.appendChild(ui);
-  let chartT = null, chartE = null, curves = null;
+  let chartT = null, chartE = null, curves = null, extr = null;
   const lip = mountLipidChart(ui.querySelector('[data-lipids]'), 'c');
   ui.querySelector('[data-exp-t]').appendChild(expandButton(ui.querySelector('[data-box-t]'), () => chartT));
   ui.querySelector('[data-exp-e]').appendChild(expandButton(ui.querySelector('[data-box-e]'), () => chartE));
@@ -68,6 +73,7 @@ export function initCurva(root) {
     const { log, model } = st.state;
     const now = nowDay();
     curves = buildCurves(log.entries, model, now);
+    extr = proximaExtraccion(log.entries, now);
     const { days, t, tE, tC, e2, e2Base, timeline: tl } = curves;
     const past = d => d <= now, fut = d => d >= now;
     const T = d => valueAt(days, t, d), E = d => valueAt(days, e2, d);
@@ -126,19 +132,22 @@ export function initCurva(root) {
 
     const obj = objetivosOf(model);
     const maxT = Math.max(T_REF.high * 1.1, ...labsT.map(p => p.y * 1.05));
-    chartT = draw(chartT, ui.querySelector('[data-box-t] canvas'), dsT, 'ng/dl', maxT, refPlugin(tRef(obj)));
-    chartE = draw(chartE, ui.querySelector('[data-box-e] canvas'), dsE, 'pg/ml', E2_REF.high * 1.6, refPlugin(e2Ref(obj)));
+    chartT = draw(chartT, ui.querySelector('[data-box-t] canvas'), dsT, 'ng/dl', maxT, refPlugin(tRef(obj)),
+      nowDotPlugin(() => curves.now, () => curves.nowT, v => `${fmt(v)} ng/dl`));
+    chartE = draw(chartE, ui.querySelector('[data-box-e] canvas'), dsE, 'pg/ml', E2_REF.high * 1.6, refPlugin(e2Ref(obj)),
+      nowDotPlugin(() => curves.now, () => curves.nowE2, v => `${fmt(v, 1)} pg/ml`));
 
     const riesgo = model.perfil?.riesgoCV; // dato personal: vive en data/model.json → perfil (privado)
     if (riesgo) ui.querySelector('[data-cvnote]').textContent = `El riesgo cardiovascular (${riesgo}) se sigue acá junto a las hormonas.`;
     renderKpis(now);
+    renderExtraccion();
     lip.render(st.state, now, { from: dayFromIso('2026-06-01T00:00:00-03:00'), to: now + 90 });
     renderContinuos(entries, now);
     const mv = model.versiones.find(v => v.id === model.vigente);
-    ui.querySelector('[data-model]').innerHTML = `Modelo vigente <b>${esc(mv.id)}</b> (${esc(mv.fecha)}): ${esc(mv.motivo)} Margen real ±33% — sirve para decisiones de rango, no para un número exacto.`;
+    ui.querySelector('[data-model]').innerHTML = `Modelo vigente <b>${esc(mv.id)}</b> (${esc(mv.fecha)}): ${esc(mv.motivo)} La precisión real se mide con cada lab nuevo (predicción congelada) — sirve para decisiones de rango, no para un número exacto.`;
   }
 
-  function draw(chart, canvas, datasets, unit, suggestedMax, ref) {
+  function draw(chart, canvas, datasets, unit, suggestedMax, ref, dot) {
     const end = curves.days[curves.days.length - 1];
     if (chart) {
       chart.data.datasets = datasets;
@@ -159,7 +168,7 @@ export function initCurva(root) {
           tooltip: { ...tooltipStyle, callbacks: { title: items => items.length ? fmtDay(items[0].parsed.x) : '', label: tooltipLabel } },
         },
       },
-      plugins: [ref, nowLinePlugin(() => curves.now)],
+      plugins: [ref, nowLinePlugin(() => curves.now), dayMarkPlugin(() => extr?.day, '🩸 extracción'), dot],
     });
   }
 
@@ -172,12 +181,48 @@ export function initCurva(root) {
     const inT = v => v > obj.t.techo ? statusOf(v, T_REF) : statusOf(v, tgtT);
     const sT = inT(curves.nowT), sE = statusOf(curves.nowE2, tgtE), sP = inT(pk);
     const tl = curves.timeline;
-    ui.querySelector('[data-kpis]').innerHTML =
+    ui.querySelector('[data-kpis-t]').innerHTML =
       kpi(`T estimada hoy (${fmtDay(now)})`, `${fmt(curves.nowT)} ng/dl`, sT.color, sT.text) +
       kpi('Pico T próximos 7 días', pk > -Infinity ? `${fmt(pk)} ng/dl` : '—', sP.color, pk > -Infinity ? `${fmtDay(pkDay)} · ${sP.text}` : 'sin dosis pendientes') +
-      kpi('E2 estimado hoy', `${fmt(curves.nowE2, 1)} pg/ml`, sE.color, `supresión anastrozol ${fmt(curves.nowSupp * 100)}% (extrapolación)`) +
       kpi('Vencidas sin confirmar', String(tl.vencidas.length), tl.vencidas.length ? C.warn : C.good,
         tl.vencidas.length ? 'resolvelas en Registro' : 'todo al día');
+    // E2: hoy, rango de los próximos 7 días (rojo si baja del piso duro), supresión y próxima toma de anastrozol.
+    const w = curves.days.map((d, i) => [d, curves.e2[i]]).filter(([d]) => d > now && d <= now + 7).map(x => x[1]);
+    const eMin = w.length ? Math.min(...w) : null, eMax = w.length ? Math.max(...w) : null;
+    const cW = eMin == null ? C.muted : eMin < obj.e2.pisoDuro ? C.bad : eMax > obj.e2.tolerableMax ? C.warn : C.good;
+    const nextAI = tl.pendientes.filter(s => s.kind === 'farmaco' && s.farmaco === 'anastrozol').sort((a, b) => a.day - b.day)[0];
+    ui.querySelector('[data-kpis-e]').innerHTML =
+      kpi('E2 estimado hoy', `${fmt(curves.nowE2, 1)} pg/ml`, sE.color, `objetivo ${tgtE.low}–${tgtE.high} · ${sE.text}`) +
+      kpi('E2 próximos 7 días', eMin == null ? '—' : `${fmt(eMin, 0)}–${fmt(eMax, 0)} pg/ml`, cW,
+        eMin == null ? '' : eMin < obj.e2.pisoDuro ? `⚠ el mínimo baja del piso duro (${obj.e2.pisoDuro})` : eMax > obj.e2.tolerableMax ? `el máximo pasa lo tolerable (${obj.e2.tolerableMax})` : 'sin cruzar el piso duro') +
+      kpi('Supresión anastrozol hoy', `${fmt(curves.nowSupp * 100)}%`, C.text, 'extrapolación poblacional hasta medir tu respuesta') +
+      kpi('Próxima toma anastrozol', nextAI ? fmtDay(nextAI.day) : '—', C.text, nextAI ? `${fmt(nextAI.mg, 2)} mg` : 'sin tomas pendientes');
+  }
+
+  // Tarjeta 🩸: fecha ideal (motor/extraccion.js), qué la fija, qué predice el modelo vigente ese día y checklist.
+  function renderExtraccion() {
+    const box = ui.querySelector('[data-extraccion]'), { model, log } = st.state, mp = curves.params, d = extr.day;
+    const tAt = d <= curves.days.at(-1) ? valueAt(curves.days, curves.t, d) : null;
+    const e2With = ed50 => e2FromT(tAt, mp.kArom, suppressionFromDoses(curves.timeline.allAI, d, { ...mp.anastrozol, ed50 }));
+    const lip = predictLipidsAt(log.entries, d, mp.estatinaFactor ?? 1);
+    const extras = model.perfil?.extraccionExtras; // dato personal: data/model.json → perfil (privado)
+    box.innerHTML = `<h3>🩸 Próxima extracción ideal: ${WEEKDAYS[weekdayOfDay(d)]} ${fmtDay(d)}</h3>
+      <div class="small muted">La fija: <b>${esc(extr.motivo)}</b>. Día sin aplicación (${extr.libres.map(x => WEEKDAYS[x]).join('/')}), a mitad del intervalo: ahí el modelo depende menos de la velocidad de absorción. Si cambiás el esquema, la fecha se corre.</div>
+      <div class="callouts">
+        ${kpi('T que predice el modelo', tAt == null ? '—' : `${fmt(tAt)} ng/dl`, C.t, `versión ${esc(curves.version)}`)}
+        ${kpi('E2 que predice', tAt == null ? '—' : `${fmt(e2With(mp.anastrozol.ed50), 0)} pg/ml`, C.e2,
+          tAt == null ? '' : `si sos sensible al anastrozol ${fmt(e2With(mp.anastrozol.ed50 * 0.5), 0)} · resistente ${fmt(e2With(mp.anastrozol.ed50 * 2), 0)}`)}
+        ${lip.ldl != null ? kpi('LDL que predice', `${fmt(lip.ldl)} mg/dl`, C.good, 'mide tu respuesta a la estatina') : ''}
+        ${lip.apob != null ? kpi('ApoB que predice', `${fmt(lip.apob)} mg/dl`, C.good, '') : ''}
+      </div>
+      <details style="margin-top:8px"><summary class="small">Checklist para esa extracción</summary><ul>
+        <li>7 días antes: suspender la biotina.</li>
+        <li>5–7 días sin entrenamiento pesado (si no, GOT/GPT/CPK salen altos por músculo).</li>
+        <li>Sin cambios de dosis, días ni anastrozol hasta la extracción.</li>
+        <li>En ayunas, ${fmtDay(d).slice(6)} hs. Anotar la hora exacta de la extracción.</li>
+        ${extras ? `<li>Agregar a la orden: <b>${esc(extras)}</b>.</li>` : ''}
+        <li>Cuando llegue: cargarlo en 📝 Registro (congela la predicción) → recalibrar en sesión con Claude Code.</li>
+      </ul></details>`;
   }
 
   function renderContinuos(entries, now) {

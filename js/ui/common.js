@@ -104,6 +104,44 @@ export function nowLinePlugin(getNow) {
   };
 }
 
+// Punto "hoy" que late sobre la curva: un <div> encima del canvas (la animación es CSS; el chart no se redibuja).
+export function nowDotPlugin(getNow, getValue, fmtValue) {
+  return {
+    id: 'nowDot',
+    afterDraw(chart) {
+      const box = chart.canvas.parentNode;
+      let el = box.querySelector(':scope > .now-dot');
+      if (!el) { el = h('<div class="now-dot"><span class="now-dot-lbl"></span></div>'); box.appendChild(el); }
+      const { x, y } = chart.scales, { top, bottom } = chart.chartArea, now = getNow(), v = getValue();
+      if (now == null || v == null || !Number.isFinite(v) || now < x.min || now > x.max) { el.hidden = true; return; }
+      const xp = x.getPixelForValue(now);
+      el.hidden = false;
+      el.style.left = `${xp}px`;
+      el.style.top = `${Math.min(Math.max(y.getPixelForValue(v), top), bottom)}px`;
+      el.classList.toggle('flip', xp > chart.width - 100);
+      el.firstElementChild.textContent = fmtValue(v);
+    },
+  };
+}
+
+// Línea vertical rotulada en un día (ej. 🩸 próxima extracción).
+export function dayMarkPlugin(getDay, text, color = C.bad) {
+  return {
+    id: 'dayMark',
+    afterDatasetsDraw(chart) {
+      const x = chart.scales.x, d = getDay();
+      if (d == null || d < x.min || d > x.max) return;
+      const { ctx, chartArea: { top, bottom } } = chart, xp = x.getPixelForValue(d);
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([2, 4]);
+      ctx.beginPath(); ctx.moveTo(xp, top + 16); ctx.lineTo(xp, bottom); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = color; ctx.font = 'bold 11px Segoe UI, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(text, xp, top + 11);
+      ctx.restore();
+    },
+  };
+}
+
 export const tooltipStyle = {
   backgroundColor: '#22263a', borderColor: '#2e3350', borderWidth: 1, titleColor: C.text, bodyColor: C.text,
 };

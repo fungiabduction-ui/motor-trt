@@ -4,7 +4,7 @@ import { projectLipids, predictLipidsAt, statinPeriods } from '../engine/lipids.
 import { objetivosOf, perfilOf } from '../engine/objetivos.js';
 import { activeVersion } from '../engine/calibration.js';
 import { dayFromIso } from '../engine/time.js';
-import { h, fmt, fmtIso, fmtDay, kpi, refPlugin, nowLinePlugin, tooltipStyle, valueAxis, C } from './common.js';
+import { h, fmt, fmtIso, fmtDay, kpi, refPlugin, nowLinePlugin, nowDotPlugin, expandButton, tooltipStyle, valueAxis, C } from './common.js';
 
 export const LIPIDS = {
   ldl: { label: 'LDL', unit: 'mg/dl', ref: [null, 116] },
@@ -20,13 +20,14 @@ const breakGaps = pts => pts.flatMap((q, i) => (i && q.x - pts[i - 1].x > 180 ? 
 export function mountLipidChart(root, idPrefix) {
   const ui = h(`<div>
     <div class="field-row"><div class="field"><label for="${idPrefix}Lip">Lípido</label><select id="${idPrefix}Lip">
-      ${Object.entries(LIPIDS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('')}</select></div></div>
+      ${Object.entries(LIPIDS).map(([k, p]) => `<option value="${k}">${p.label}</option>`).join('')}</select></div><span data-exp style="align-self:flex-end"></span></div>
     <div class="callouts" data-k></div>
     <div class="chart-box small" data-box><canvas></canvas></div>
     <div class="legend-note" data-note></div></div>`);
   root.appendChild(ui);
   let chart = null, lastArgs = null;
   ui.querySelector('select').addEventListener('change', () => lastArgs && render(...lastArgs));
+  ui.querySelector('[data-exp]').appendChild(expandButton(ui.querySelector('[data-box]'), () => chart));
 
   function render(state, now, win) {
     lastArgs = [state, now, win];
@@ -54,7 +55,8 @@ export function mountLipidChart(root, idPrefix) {
           y: valueAxis(p.unit, Math.max(...real.map(q => q.y), metaLab || 0) * 1.15) },
         plugins: { legend: { position: 'bottom', labels: { color: C.muted, boxWidth: 10, font: { size: 10.5 } } },
           tooltip: { ...tooltipStyle, callbacks: { title: it => it.length ? fmtDay(it[0].parsed.x) : '', label: c => c.raw?.info || `${c.dataset.label}: ${fmt(c.parsed.y)}` } } } },
-      plugins: [refPlugin({ low: p.ref[0], high: metaLab ?? p.ref[1], unit: p.unit, extra }), nowLinePlugin(() => now)],
+      plugins: [refPlugin({ low: p.ref[0], high: metaLab ?? p.ref[1], unit: p.unit, extra }), nowLinePlugin(() => now),
+        nowDotPlugin(() => now, () => predictLipidsAt(log.entries, now, factor)[key], v => `${fmt(v)} ${p.unit}`)],
     });
     const at = w => predictLipidsAt(log.entries, now + 7 * w, factor)[key];
     const col = v => metaEsc && v <= metaEsc ? C.good : metaLab != null && v <= metaLab ? C.warn : C.bad;
