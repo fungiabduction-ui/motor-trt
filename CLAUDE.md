@@ -29,7 +29,10 @@ clínicos, fixtures y tests con datos reales) viven en el repo **privado** `MOTO
    (escala de T, ED50 del anastrozol, respuesta a la estatina), nunca escribe el modelo.
 3. Cada lab nuevo congela la predicción de la versión vigente (`prediccion`) antes de recalibrar.
 4. Fechas ISO con `-03:00`; el motor trabaja en "días desde 17/06/2026 00:00 hora local" (`js/engine/time.js`).
-5. Datos personales que la UI muestra (nombres, contexto clínico) viven en `data/model.json → perfil`; el código los lee de ahí.
+5. **El motor se ajusta a la respuesta individual:** los parámetros poblacionales (vida media por éster, ED50 del
+   anastrozol, factor de estatina) se reemplazan por los personales a medida que los labs los miden. Tabla de qué está
+   calibrado y qué falta: `data/docs/CLAUDE-motor-completo.md`. `js/engine/extraccion.js` propone cuándo sacar sangre.
+6. Datos personales que la UI muestra (nombres, contexto clínico) viven en `data/model.json → perfil`; el código los lee de ahí.
 
 ## En una sesión de Claude Code
 - Antes de leer datos: `git -C data pull`. Después de editar `data/` (ej. recalibrar `model.json`): commit + push en `data/`.
