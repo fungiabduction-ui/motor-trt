@@ -35,6 +35,9 @@ export function initCurva(root) {
       <div class="field"><label>Ventana</label><select data-range>
         <option value="all">Todo (desde 17/06)</option><option value="60">Últimos 60 días + proyección</option>
         <option value="30" selected>Últimos 30 días + proyección</option><option value="14">Últimos 14 días + proyección</option></select></div>
+      <div class="field"><label>Proyección hacia adelante</label><select data-horizon>
+        <option value="35" selected>5 semanas</option><option value="60">2 meses</option><option value="90">3 meses</option>
+        <option value="180">6 meses</option><option value="365">1 año</option></select></div>
       <div class="field inline"><input type="checkbox" id="cvEster"><label for="cvEster">Mostrar aporte por éster</label></div>
     </div>
     <div class="card extraccion" data-extraccion></div>
@@ -60,6 +63,7 @@ export function initCurva(root) {
   ui.querySelector('[data-exp-e]').appendChild(expandButton(ui.querySelector('[data-box-e]'), () => chartE));
   ui.querySelector('[data-range]').addEventListener('change', applyRange);
   ui.querySelector('#cvEster').addEventListener('change', render);
+  ui.querySelector('[data-horizon]').addEventListener('change', render);
 
   function xMin() {
     const r = ui.querySelector('[data-range]').value;
@@ -72,7 +76,8 @@ export function initCurva(root) {
   function render() {
     const { log, model } = st.state;
     const now = nowDay();
-    curves = buildCurves(log.entries, model, now);
+    const horizon = Number(ui.querySelector('[data-horizon]').value);
+    curves = buildCurves(log.entries, model, now, { horizonDays: horizon });
     extr = proximaExtraccion(log.entries, now);
     const { days, t, tE, tC, e2, e2Base, timeline: tl } = curves;
     const past = d => d <= now, fut = d => d >= now;
@@ -141,7 +146,7 @@ export function initCurva(root) {
     if (riesgo) ui.querySelector('[data-cvnote]').textContent = `El riesgo cardiovascular (${riesgo}) se sigue acá junto a las hormonas.`;
     renderKpis(now);
     renderExtraccion();
-    lip.render(st.state, now, { from: dayFromIso('2026-06-01T00:00:00-03:00'), to: now + 90 });
+    lip.render(st.state, now, { from: dayFromIso('2026-06-01T00:00:00-03:00'), to: now + Math.max(90, horizon) });
     renderContinuos(entries, now);
     const mv = model.versiones.find(v => v.id === model.vigente);
     ui.querySelector('[data-model]').innerHTML = `Modelo vigente <b>${esc(mv.id)}</b> (${esc(mv.fecha)}): ${esc(mv.motivo)} La precisión real se mide con cada lab nuevo (predicción congelada) — sirve para decisiones de rango, no para un número exacto.`;
